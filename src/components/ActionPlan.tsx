@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, RefreshCw, CheckCircle2, Clock, Sparkles } from 'lucide-react';
+import { ArrowLeft, RefreshCw, CheckCircle2, Clock, Sparkles, Lightbulb, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Benefit, categoryColors } from '@/data/benefits';
-import { generateActionPlan } from '@/services/aiService';
+import { generateActionPlan, ActionPlanResult } from '@/services/aiService';
+import { toast } from 'sonner';
 
 interface ActionPlanProps {
   benefit: Benefit;
@@ -12,14 +13,8 @@ interface ActionPlanProps {
   onStartOver: () => void;
 }
 
-interface Step {
-  title: string;
-  description: string;
-  timeframe: string;
-}
-
 export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPlanProps) {
-  const [steps, setSteps] = useState<Step[]>([]);
+  const [plan, setPlan] = useState<ActionPlanResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
 
@@ -27,9 +22,10 @@ export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPla
     setIsLoading(true);
     try {
       const result = await generateActionPlan(benefit, userNeed);
-      setSteps(result.steps);
+      setPlan(result);
     } catch (error) {
       console.error('Error generating action plan:', error);
+      toast.error('Failed to generate action plan. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -37,8 +33,10 @@ export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPla
 
   const handleRegenerate = async () => {
     setIsRegenerating(true);
+    toast.info('Generating a new action plan...');
     await fetchPlan();
     setIsRegenerating(false);
+    toast.success('Action plan regenerated!');
   };
 
   useEffect(() => {
@@ -102,7 +100,7 @@ export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPla
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Your Action Plan</h1>
-                <p className="text-sm text-muted-foreground">AI-generated steps to get started</p>
+                <p className="text-sm text-muted-foreground">AI-generated steps personalized for your needs</p>
               </div>
             </div>
             <Button
@@ -118,6 +116,21 @@ export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPla
           </div>
         </motion.div>
 
+        {/* AI Summary */}
+        {!isLoading && plan?.summary && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/20"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-primary">AI Summary</span>
+            </div>
+            <p className="text-foreground">{plan.summary}</p>
+          </motion.div>
+        )}
+
         {/* Steps */}
         <AnimatePresence mode="wait">
           {isLoading ? (
@@ -128,7 +141,11 @@ export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPla
               exit={{ opacity: 0 }}
               className="space-y-4"
             >
-              {[1, 2, 3].map((i) => (
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                <span className="text-muted-foreground">AI is creating your personalized action plan...</span>
+              </div>
+              {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
                   className="h-32 rounded-2xl bg-muted animate-pulse-soft"
@@ -143,7 +160,7 @@ export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPla
               exit={{ opacity: 0 }}
               className="space-y-4"
             >
-              {steps.map((step, index) => (
+              {plan?.steps.map((step, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, x: -20 }}
@@ -152,7 +169,7 @@ export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPla
                   className="relative"
                 >
                   {/* Connector Line */}
-                  {index < steps.length - 1 && (
+                  {index < (plan?.steps.length || 0) - 1 && (
                     <div className="absolute left-6 top-16 w-0.5 h-8 bg-border" />
                   )}
 
@@ -178,7 +195,25 @@ export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPla
                           <span className="text-sm">{step.timeframe}</span>
                         </div>
                       </div>
-                      <p className="text-muted-foreground">{step.description}</p>
+                      <p className="text-muted-foreground mb-3">{step.description}</p>
+                      
+                      {/* Tips */}
+                      {step.tips && step.tips.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Lightbulb className="w-3.5 h-3.5 text-accent" />
+                            <span className="text-xs font-medium text-accent">Tips</span>
+                          </div>
+                          <ul className="space-y-1">
+                            {step.tips.map((tip, tipIndex) => (
+                              <li key={tipIndex} className="text-sm text-muted-foreground flex items-start gap-2">
+                                <span className="text-accent">•</span>
+                                {tip}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -186,6 +221,29 @@ export function ActionPlan({ benefit, userNeed, onBack, onStartOver }: ActionPla
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Important Notes */}
+        {!isLoading && plan?.importantNotes && plan.importantNotes.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-8 p-4 rounded-xl bg-accent/5 border border-accent/20"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle className="w-4 h-4 text-accent" />
+              <span className="text-sm font-medium text-accent">Important Notes</span>
+            </div>
+            <ul className="space-y-2">
+              {plan.importantNotes.map((note, index) => (
+                <li key={index} className="text-sm text-foreground flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+                  {note}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
 
         {/* Footer Actions */}
         {!isLoading && (
