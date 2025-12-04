@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BenefitCard } from '@/components/BenefitCard';
 import { Benefit, BenefitCategory, categoryIcons } from '@/data/benefits';
@@ -12,6 +12,8 @@ interface BenefitsListProps {
   onBack: () => void;
   onRetry: () => void;
   isFallback: boolean;
+  reasoning?: string;
+  suggestions?: string[];
 }
 
 export function BenefitsList({
@@ -22,6 +24,8 @@ export function BenefitsList({
   onBack,
   onRetry,
   isFallback,
+  reasoning,
+  suggestions,
 }: BenefitsListProps) {
   return (
     <motion.div
@@ -60,6 +64,44 @@ export function BenefitsList({
               <p className="text-muted-foreground">Based on: "{userInput}"</p>
             </div>
           </div>
+
+          {/* AI Reasoning */}
+          {reasoning && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="p-4 rounded-xl bg-primary/5 border border-primary/20 mb-4"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">AI Analysis</span>
+              </div>
+              <p className="text-sm text-foreground">{reasoning}</p>
+            </motion.div>
+          )}
+
+          {/* Related Questions */}
+          {suggestions && suggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mb-6"
+            >
+              <p className="text-sm text-muted-foreground mb-2">You might also want to ask:</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((suggestion, index) => (
+                  <span
+                    key={index}
+                    className="text-xs px-3 py-1.5 rounded-full bg-muted text-muted-foreground"
+                  >
+                    {suggestion}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* Fallback Warning */}
           {isFallback && (

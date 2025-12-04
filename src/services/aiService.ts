@@ -1,125 +1,120 @@
 import { BenefitCategory, Benefit } from '@/data/benefits';
+import { supabase } from '@/integrations/supabase/client';
 
-// Simulated AI classification - in production, this would call the Lovable AI Gateway
-export async function classifyHealthNeed(userInput: string): Promise<{
+export interface ClassificationResult {
   category: BenefitCategory | null;
   confidence: number;
   fallback: boolean;
-}> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-
-  const input = userInput.toLowerCase();
-
-  // Keywords for classification
-  const keywords: Record<BenefitCategory, string[]> = {
-    'Dental': ['tooth', 'teeth', 'dental', 'dentist', 'cavity', 'gum', 'braces', 'orthodontic', 'mouth', 'oral', 'wisdom', 'filling', 'root canal', 'crown', 'toothache'],
-    'Mental Health': ['stress', 'anxiety', 'depression', 'mental', 'therapy', 'counseling', 'therapist', 'emotional', 'panic', 'mood', 'sleep', 'burnout', 'overwhelmed', 'sad', 'worried'],
-    'Vision': ['eye', 'vision', 'glasses', 'contacts', 'sight', 'blind', 'optometrist', 'lens', 'lasik', 'blurry', 'seeing', 'read'],
-    'OPD': ['doctor', 'checkup', 'consultation', 'sick', 'fever', 'cold', 'flu', 'infection', 'pain', 'headache', 'stomach', 'general', 'blood test', 'prescription', 'medication'],
-  };
-
-  let bestMatch: BenefitCategory | null = null;
-  let maxScore = 0;
-
-  for (const [category, words] of Object.entries(keywords) as [BenefitCategory, string[]][]) {
-    const score = words.filter(word => input.includes(word)).length;
-    if (score > maxScore) {
-      maxScore = score;
-      bestMatch = category;
-    }
-  }
-
-  // If no keywords match, try to infer from general context
-  if (!bestMatch) {
-    if (input.includes('hurt') || input.includes('ache') || input.includes('problem')) {
-      // Default to OPD for general health concerns
-      bestMatch = 'OPD';
-      return { category: bestMatch, confidence: 0.5, fallback: true };
-    }
-    return { category: null, confidence: 0, fallback: true };
-  }
-
-  const confidence = Math.min(0.95, 0.6 + maxScore * 0.15);
-  return { category: bestMatch, confidence, fallback: false };
+  reasoning?: string;
+  suggestions?: string[];
 }
 
-export async function generateActionPlan(benefit: Benefit, userNeed: string): Promise<{
-  steps: { title: string; description: string; timeframe: string }[];
-}> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1200));
+export interface ActionStep {
+  title: string;
+  description: string;
+  timeframe: string;
+  tips?: string[];
+}
 
-  const actionPlans: Record<BenefitCategory, { title: string; description: string; timeframe: string }[]> = {
-    'Dental': [
-      {
-        title: 'Schedule an Appointment',
-        description: `Contact ${benefit.provider} through the benefits portal or call their helpline. Mention your employee ID to verify coverage.`,
-        timeframe: 'Today',
-      },
-      {
-        title: 'Visit the Dentist',
-        description: 'Bring your insurance card and ID to your appointment. The dentist will assess your condition and recommend treatment.',
-        timeframe: 'Within 1-3 days',
-      },
-      {
-        title: 'Complete Treatment',
-        description: 'Follow the recommended treatment plan. Your coverage of ' + benefit.coverage + ' will be applied automatically.',
-        timeframe: 'As recommended',
-      },
-    ],
-    'Mental Health': [
-      {
-        title: 'Request a Counselor Match',
-        description: `Use the ${benefit.provider} app or website to browse available therapists. Filter by specialty and availability.`,
-        timeframe: 'Today',
-      },
-      {
-        title: 'Book Your First Session',
-        description: 'Schedule an initial consultation (virtual or in-person). Sessions are confidential and covered under your plan.',
-        timeframe: 'Within 2-5 days',
-      },
-      {
-        title: 'Begin Your Wellness Journey',
-        description: `Continue regular sessions using your ${benefit.coverage}. Track progress and adjust frequency as needed.`,
-        timeframe: 'Ongoing',
-      },
-    ],
-    'Vision': [
-      {
-        title: 'Find a Network Provider',
-        description: `Search for in-network optometrists on the ${benefit.provider} website. Check reviews and available appointment times.`,
-        timeframe: 'Today',
-      },
-      {
-        title: 'Get Your Eye Exam',
-        description: 'Complete a comprehensive eye examination. Your exam is fully covered under the plan.',
-        timeframe: 'Within 1 week',
-      },
-      {
-        title: 'Order Your Eyewear',
-        description: `Choose glasses or contacts using your ${benefit.coverage}. Network discounts apply to frames and lenses.`,
-        timeframe: 'After exam',
-      },
-    ],
-    'OPD': [
-      {
-        title: 'Book a Consultation',
-        description: `Schedule with a general practitioner or specialist through ${benefit.provider}. Virtual consultations are available.`,
-        timeframe: 'Today',
-      },
-      {
-        title: 'Attend Your Appointment',
-        description: 'Describe your symptoms to the doctor. Any prescribed tests or medications are covered under your plan.',
-        timeframe: 'Within 1-2 days',
-      },
-      {
-        title: 'Follow Treatment Plan',
-        description: `Fill prescriptions at network pharmacies. Your ${benefit.coverage} covers consultations, tests, and medications.`,
-        timeframe: 'As prescribed',
-      },
-    ],
-  };
+export interface ActionPlanResult {
+  steps: ActionStep[];
+  summary?: string;
+  importantNotes?: string[];
+}
 
-  return { steps: actionPlans[benefit.category] };
+export async function classifyHealthNeed(userInput: string): Promise<ClassificationResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('benefits-ai', {
+      body: { action: 'classify', userInput }
+    });
+
+    if (error) {
+      console.error('Classification error:', error);
+      throw error;
+    }
+
+    if (data.error) {
+      console.error('AI error:', data.error);
+      throw new Error(data.error);
+    }
+
+    return {
+      category: data.category as BenefitCategory | null,
+      confidence: data.confidence || 0,
+      fallback: data.fallback || false,
+      reasoning: data.reasoning,
+      suggestions: data.suggestions
+    };
+  } catch (error) {
+    console.error('Failed to classify health need:', error);
+    // Return fallback response
+    return {
+      category: null,
+      confidence: 0,
+      fallback: true
+    };
+  }
+}
+
+export async function generateActionPlan(benefit: Benefit, userNeed: string): Promise<ActionPlanResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('benefits-ai', {
+      body: { 
+        action: 'action-plan', 
+        benefit: {
+          title: benefit.title,
+          category: benefit.category,
+          coverage: benefit.coverage,
+          provider: benefit.provider,
+          description: benefit.description
+        },
+        userNeed 
+      }
+    });
+
+    if (error) {
+      console.error('Action plan error:', error);
+      throw error;
+    }
+
+    if (data.error) {
+      console.error('AI error:', data.error);
+      throw new Error(data.error);
+    }
+
+    return {
+      steps: data.steps || [],
+      summary: data.summary,
+      importantNotes: data.importantNotes
+    };
+  } catch (error) {
+    console.error('Failed to generate action plan:', error);
+    // Return fallback action plan
+    return {
+      steps: [
+        {
+          title: 'Contact Provider',
+          description: `Reach out to ${benefit.provider} through the benefits portal or call their helpline.`,
+          timeframe: 'Today',
+        },
+        {
+          title: 'Schedule Appointment',
+          description: 'Book an appointment with an in-network provider at your convenience.',
+          timeframe: 'Within 1-3 days',
+        },
+        {
+          title: 'Prepare Documents',
+          description: 'Bring your employee ID and insurance card to your appointment.',
+          timeframe: 'Before appointment',
+        },
+        {
+          title: 'Complete Treatment',
+          description: `Follow the recommended treatment plan. Your coverage of ${benefit.coverage} will be applied.`,
+          timeframe: 'As recommended',
+        },
+      ],
+      summary: "We're here to help you access your benefits!",
+      importantNotes: ['Keep all receipts for reimbursement purposes']
+    };
+  }
 }

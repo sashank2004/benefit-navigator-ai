@@ -7,6 +7,7 @@ import { ActionPlan } from '@/components/ActionPlan';
 import { NoMatch } from '@/components/NoMatch';
 import { benefits, Benefit, BenefitCategory } from '@/data/benefits';
 import { classifyHealthNeed } from '@/services/aiService';
+import { toast } from 'sonner';
 
 type Screen = 'input' | 'loading' | 'benefits' | 'action-plan' | 'no-match';
 
@@ -16,6 +17,8 @@ const Index = () => {
   const [classifiedCategory, setClassifiedCategory] = useState<BenefitCategory | null>(null);
   const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null);
   const [isFallback, setIsFallback] = useState(false);
+  const [aiReasoning, setAiReasoning] = useState<string | undefined>();
+  const [aiSuggestions, setAiSuggestions] = useState<string[] | undefined>();
 
   const handleInputSubmit = async (input: string) => {
     setUserInput(input);
@@ -27,12 +30,15 @@ const Index = () => {
       if (result.category) {
         setClassifiedCategory(result.category);
         setIsFallback(result.fallback);
+        setAiReasoning(result.reasoning);
+        setAiSuggestions(result.suggestions);
         setCurrentScreen('benefits');
       } else {
         setCurrentScreen('no-match');
       }
     } catch (error) {
       console.error('Classification error:', error);
+      toast.error('Something went wrong. Please try again.');
       setCurrentScreen('no-match');
     }
   };
@@ -51,6 +57,8 @@ const Index = () => {
     setClassifiedCategory(null);
     setSelectedBenefit(null);
     setIsFallback(false);
+    setAiReasoning(undefined);
+    setAiSuggestions(undefined);
     setCurrentScreen('input');
   };
 
@@ -83,6 +91,8 @@ const Index = () => {
             onBack={handleStartOver}
             onRetry={handleRetry}
             isFallback={isFallback}
+            reasoning={aiReasoning}
+            suggestions={aiSuggestions}
           />
         )}
 

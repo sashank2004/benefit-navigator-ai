@@ -1,0 +1,4 @@
+project_id = "rzijepgjsvpxwhbjckdd"
+
+[functions.benefits-ai]
+verify_jwt = false
