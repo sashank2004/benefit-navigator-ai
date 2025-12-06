@@ -1,73 +1,126 @@
-# Welcome to your Lovable project
+# AI-Powered Benefits Discovery Flow
 
-## Project info
+A multi-screen web application where employees can describe a health-related need in free text, and AI automatically classifies it into a benefits category, recommends suitable benefits, and generates a simple step-by-step action plan.
 
-**URL**: https://lovable.dev/projects/6c9a6c0b-f9c2-499e-9eb3-dc70f1e7f8ee
+## 1. Project Setup & Demo
 
-## How can I edit this code?
+### Live Demo
+URL: https://aipoweredbenefitsdiscoveryflow.lovable.app/
+Loom: https://www.loom.com/share/9034a9a48f164b9e9d2c22ceae27a7c2
 
-There are several ways of editing your application.
+### Run Locally
+Ensure you have Node.js and npm installed.
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/6c9a6c0b-f9c2-499e-9eb3-dc70f1e7f8ee) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
-```
 
-**Edit a file directly in GitHub**
+## 2. Problem Understanding
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The objective is to help employees discover the right benefits based on natural-language input.
 
-**Use GitHub Codespaces**
+### Flow Steps
+1. Screen 1 – User enters a health-related issue.
+2. Screen 2 – AI classifies the input into categories such as Dental, Vision, OPD, Mental Health, with a loading animation.
+3. Screen 3 – Displays 2–4 mock benefit cards based on the selected category.
+4. Screen 4 – AI generates a 3-step action plan for availing the chosen benefit.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+All benefits are static and fetched from mock JSON files.
 
-## What technologies are used for this project?
+## 3. AI Prompts & Iterations
 
-This project is built with:
+### Initial Prompt
+Classify the following text into Dental, OPD, Vision, Mental Health.
 
+### Refined Classification Prompt
+Return ONLY the category name from {Dental, OPD, Vision, Mental Health} that matches the text: "{user_input}". Nothing else.
+
+### Action Plan Prompt
+Generate steps explaining how an employee can avail the benefit titled "{benefit_title}". Keep the steps simple and clear.
+
+### Fallback Prompt
+Unrecognized — please rephrase your need.
+
+A Regenerate option is provided to retry AI responses.
+
+## 4. Architecture & Code Structure
+
+### Project Structure Overview
+
+The project follows a clean component-based architecture with separate folders for UI components, data, services, and serverless functions.
+
+### Key Files & Responsibilities
+
+### src/
+- ActionPlan.tsx  
+  - Displays the AI-generated 3-step action plan for the selected benefit.
+
+- BenefitCard.tsx  
+  - Reusable card component that shows benefit title, coverage, and description.
+
+- BenefitInput.tsx  
+  - Screen where the user enters a free-text health concern (e.g., “I have tooth pain”).
+
+- BenefitList.tsx  
+  - Displays 2–4 benefit cards based on the AI-classified category.
+
+- LoadingClassifier.tsx  
+  - Shows a loading animation while the AI processes and classifies the input.
+
+- NavLink.tsx  
+  - Small navigation/link helper component for internal routing.
+
+- NoMatch.tsx  
+  - Fallback screen for invalid routes.
+
+### data/
+- benefits.ts  
+  - Contains mock JSON-like data for benefits across categories (Dental, OPD, Mental Health, Vision).
+  - No real backend — benefits are statically loaded.
+
+### services/
+- aiService.ts  
+  - Handles all AI interactions.
+  - Includes:
+    - Classification prompt logic  
+    - Action-plan generation prompt  
+    - Fallback handling for unrecognized input  
+    - Regenerate response support  
+
+### supabase/functions/benefits-ai/index.ts
+- Serverless function that acts as an API endpoint for AI requests.
+- Processes:
+  - Classification requests  
+  - Action-plan generation requests  
+- Ensures prompt formatting and response parsing before returning structured output.
+
+### App Flow
+1. User enters text → BenefitInput.tsx  
+2. AI classification → LoadingClassifier.tsx → BenefitList.tsx  
+3. User selects a benefit → ActionPlan.tsx  
+4. Supabase function + aiService.ts handle AI calls behind the scenes.
+
+### Tech Stack
+- React + TypeScript
 - Vite
-- TypeScript
-- React
-- shadcn-ui
 - Tailwind CSS
+- shadcn-ui
+- Supabase Edge Functions (for AI backend)
 
-## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/6c9a6c0b-f9c2-499e-9eb3-dc70f1e7f8ee) and click on Share -> Publish.
+## 5. Demo Recording
 
-## Can I connect a custom domain to my Lovable project?
+Loom: https://www.loom.com/share/9034a9a48f164b9e9d2c22ceae27a7c2
 
-Yes, you can!
+## 6. Known Issues / Improvements
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- Future improvements:
+  - Add clarifying questions for uncertain inputs
+  - Expand categories and mock data
+  - Improve transitions and UX
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 7. Bonus Work
+
+- Added loading animation
+- Improved prompt engineering for consistent outputs
