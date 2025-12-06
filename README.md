@@ -5,16 +5,16 @@ A multi-screen web application where employees can describe a health-related nee
 ## 1. Project Setup & Demo
 
 ### Live Demo
-URL: https://aipoweredbenefitsdiscoveryflow.lovable.app/
-Loom: https://www.loom.com/share/9034a9a48f164b9e9d2c22ceae27a7c2
+- URL: https://aipoweredbenefitsdiscoveryflow.lovable.app/
+- Loom: https://www.loom.com/share/9034a9a48f164b9e9d2c22ceae27a7c2
 
 ### Run Locally
 Ensure you have Node.js and npm installed.
 
-git clone <YOUR_GIT_URL>
-cd <YOUR_PROJECT_NAME>
-npm install
-npm run dev
+- git clone <YOUR_GIT_URL>
+- cd <YOUR_PROJECT_NAME>
+- npm install
+- npm run dev
 
 ## 2. Problem Understanding
 
